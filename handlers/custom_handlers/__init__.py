@@ -1,3 +1,3 @@
-from . import bestdeal, history, high_price, low_price
+from . import bestdeal, history, fast_message, low_price
 
-__all__ = ["bestdeal", "history", "high_price", "low_price"]
+__all__ = ["bestdeal", "history", "fast_message", "low_price"]
