@@ -19,3 +19,8 @@ class History(BaseModel):
 
 
 History.create_table()
+
+
+def write_db(user_id, hotel_name):
+    with db:
+        History.create(user_id=user_id, hotels=hotel_name)

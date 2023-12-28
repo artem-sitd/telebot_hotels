@@ -2,12 +2,12 @@ from keyboards.inline.calendar import MyCalendar
 from keyboards.inline.yes_no_photo import keyboard_yes_no
 from loader import bot
 from states.all_state import AllState as AS
-from telebot.types import Message
-from telebot import types
+from telebot.types import Message, CallbackQuery, InputMediaPhoto
 from RAPIDAPI.responses import check_city as cc
 from RAPIDAPI.lowprice import process_data as PD
 from time import sleep
 from .fast_message import FastMessage as FM
+from database.models import History as HS
 
 # Локализация для календаря
 LSTEP = {"y": "год", "m": "месяц", "d": "день"}
@@ -17,13 +17,13 @@ LSTEP = {"y": "год", "m": "месяц", "d": "день"}
 @bot.message_handler(commands=["lowprice", "highprice", "bestdeal"])
 def low_price(m: Message):
     bot.set_state(m.from_user.id, AS.city, m.chat.id)
-    if m.text == '/lowprice':
+    if m.text == "/lowprice":
         FM.low(m.from_user.id, m.from_user.username)
-    if m.text == '/highprice':
+    if m.text == "/highprice":
         FM.high(m.from_user.id, m.from_user.username)
         with bot.retrieve_data(m.from_user.id, m.chat.id) as data:
             data["sort_by"] = -1
-    if m.text == '/bestdeal':
+    if m.text == "/bestdeal":
         bot.set_state(m.from_user.id, AS.distance, m.chat.id)
         FM.best(m.from_user.id, m.from_user.username)
         with bot.retrieve_data(m.from_user.id, m.chat.id) as data:
@@ -55,7 +55,7 @@ def get_city(m: Message):
 
 # Сохранение даты заезда
 @bot.callback_query_handler(func=MyCalendar.func(calendar_id=1))
-def cal_checkin(c: types.CallbackQuery):
+def cal_checkin(c: CallbackQuery):
     result, key, step = MyCalendar(calendar_id=1).process(c.data)
     if not result and key:
         bot.edit_message_text(
@@ -69,7 +69,9 @@ def cal_checkin(c: types.CallbackQuery):
         with bot.retrieve_data(c.from_user.id, c.message.chat.id) as data:
             data["checkin"] = result  # Записывается дата заезда
             bot.send_message(c.from_user.id, f"Вы выбрали дату заезда {result}")
-        date_from_to(c.message)  # Просто вызываем второй календарь (ниже) с датой выезда
+        date_from_to(
+            c.message
+        )  # Просто вызываем второй календарь (ниже) с датой выезда
 
 
 @bot.message_handler(state=AS.date_from_to)
@@ -84,17 +86,20 @@ def date_from_to(m: Message):
 def cal_checkout(c):
     result, key, step = MyCalendar(calendar_id=2).process(c.data)
     if not result and key:
-        bot.edit_message_text(f"Выберите {LSTEP[step]} выезда",
-                              c.message.chat.id,
-                              c.message.message_id,
-                              reply_markup=key)
+        bot.edit_message_text(
+            f"Выберите {LSTEP[step]} выезда",
+            c.message.chat.id,
+            c.message.message_id,
+            reply_markup=key,
+        )
     elif result:
         bot.set_state(c.from_user.id, AS.count_hotels, c.message.chat.id)
         with bot.retrieve_data(c.from_user.id, c.message.chat.id) as data:
             data["checkout"] = result  # Записывается дата выезда
             bot.send_message(c.from_user.id, f"Вы выбрали дату выезда {result}")
-        bot.send_message(c.from_user.id,
-                         f"Теперь необходимо выбрать количество отелей (максимум 10)")
+        bot.send_message(
+            c.from_user.id, f"Теперь необходимо выбрать количество отелей (максимум 10)"
+        )
 
 
 @bot.message_handler(state=AS.count_hotels)
@@ -105,14 +110,14 @@ def get_count_hotels(m: Message):
         with bot.retrieve_data(m.from_user.id, m.chat.id) as data:
             data["count_hotels"] = int(m.text)
             bot.send_message(m.from_user.id, f"{m.text} отелей будет показано")
-        bot.send_message(m.from_user.id,
-                         f"Нужны ли будут фото отелей?",
-                         reply_markup=keyboard_yes_no)
+        bot.send_message(
+            m.from_user.id, f"Нужны ли будут фото отелей?", reply_markup=keyboard_yes_no
+        )
 
 
 # Не активируется AS.finish
 @bot.callback_query_handler(func=lambda c: c.data)
-def get_answer_photo(call: types.CallbackQuery):
+def get_answer_photo(call: CallbackQuery):
     if call.data == "yes_button":
         bot.set_state(call.from_user.id, AS.image_count, call.message.chat.id)
         bot.send_message(
@@ -147,12 +152,13 @@ def finish(m: Message):
             data["checkin"],
             data["checkout"],
             data["count_hotels"],
-            distance=data.get('distance'),
-            bestdeal=data.get('bestdeal', False),
-            min_price=data.get('min_price', 0),
-            max_price=data.get('max_price', 1000),
-            sort_by=data.get('sort_by', 1),
-            count_photo=data['count_photo'])
+            distance=data.get("distance"),
+            bestdeal=data.get("bestdeal", False),
+            min_price=data.get("min_price", 0),
+            max_price=data.get("max_price", 1000),
+            sort_by=data.get("sort_by", 1),
+            count_photo=data["count_photo"],
+        )
 
     if response_list:
         for hotel in response_list:
@@ -160,16 +166,16 @@ def finish(m: Message):
             text = ""
             medias = []
             for k, v in hotel.items():
-                if k != 'Фото':
+                if k == "Название отеля":
+                    HS.create(user_id=m.from_user.id, hotels=v)
+                if k != "Фото":
                     text += f"*{k}* : {v}\n"
-                if k == 'Фото':
-                    text += '*Фото*: 👇'
-                    medias = [types.InputMediaPhoto(photo) for photo in v]
+                if k == "Фото":
+                    text += "*Фото*: 👇"
+                    medias = [InputMediaPhoto(photo) for photo in v]
             bot.send_message(m.from_user.id, text, parse_mode="Markdown")
             sleep(0.1)
             if medias:
                 bot.send_media_group(m.chat.id, medias)
             # сюда вставить фото
             sleep(0.3)
-
-

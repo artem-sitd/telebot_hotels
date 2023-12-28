@@ -5,4 +5,3 @@ class User(StatesGroup):
     city = State()
     checkin = State()
     checkout = State()
-    

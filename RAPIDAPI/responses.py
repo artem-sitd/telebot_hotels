@@ -21,7 +21,7 @@ def check_city(city):
     querystring = {"q": city, "locale": "ru_RU"}
     try:
         response = json.loads(
-            requests.get(url, headers=headers, params=querystring).text
+            requests.get(url, headers=headers, params=querystring, timeout=10).text
         )
         return response["sr"][0]["gaiaId"]
     except (json.decoder.JSONDecodeError, IndexError, KeyError):
@@ -30,12 +30,14 @@ def check_city(city):
 
 
 # Получение списка отелей POST properties/v2/list
-def get_lists(gaiaId: str,
-              checkin: datetime.date,
-              checkout: datetime.date,
-              count_hotels: int = 200,  # если bestdeal
-              min_price: float = 1,  # если bestdeal
-              max_price: float = 1000):  # если bestdeal
+def get_lists(
+    gaiaId: str,
+    checkin: datetime.date,
+    checkout: datetime.date,
+    count_hotels: int = 200,  # если bestdeal
+    min_price: float = 1,  # если bestdeal
+    max_price: float = 1000, # если bestdeal
+):
     url = "https://hotels4.p.rapidapi.com/properties/v2/list"
 
     payload = {
@@ -44,12 +46,16 @@ def get_lists(gaiaId: str,
         "locale": "ru_RU",
         "siteId": 300000001,
         "destination": {"regionId": gaiaId},
-        "checkInDate": {"day": checkin.day,
-                        "month": checkin.month,
-                        "year": checkin.year, },
-        "checkOutDate": {"day": checkout.day,
-                         "month": checkout.month,
-                         "year": checkout.year, },
+        "checkInDate": {
+            "day": int(checkin.day),
+            "month": int(checkin.month),
+            "year": int(checkin.year),
+        },
+        "checkOutDate": {
+            "day": int(checkout.day),
+            "month": int(checkout.month),
+            "year": int(checkout.year),
+        },
         "rooms": [{"adults": 2, "children": [{"age": 5}, {"age": 7}]}],
         "resultsStartingIndex": 0,
         "resultsSize": int(count_hotels),
@@ -59,7 +65,8 @@ def get_lists(gaiaId: str,
 
     try:
         response = json.loads(requests.post(url, json=payload, headers=headers).text)[
-            "data"]["propertySearch"]["properties"]
+            "data"
+        ]["propertySearch"]["properties"]
         return response
     except (json.decoder.JSONDecodeError, IndexError, KeyError) as ke:
         print("какая-то ошибка", ke, traceback.format_exc())
@@ -70,14 +77,17 @@ def get_lists(gaiaId: str,
 def get_detail(propertyId, count_photo=None):
     url = "https://hotels4.p.rapidapi.com/properties/v2/detail"
 
-    payload = {"currency": "USD",
-               "eapid": 1,
-               "locale": "ru_RU",
-               "siteId": 300000001,
-               "propertyId": propertyId, }
+    payload = {
+        "currency": "USD",
+        "eapid": 1,
+        "locale": "ru_RU",
+        "siteId": 300000001,
+        "propertyId": propertyId,
+    }
     try:
         response = json.loads(requests.post(url, json=payload, headers=headers).text)[
-            "data"]["propertyInfo"]
+            "data"
+        ]["propertyInfo"]
         return response
     except (json.decoder.JSONDecodeError, IndexError, KeyError) as ke:
         print("какая-то ошибка", ke, traceback.format_exc())

@@ -9,7 +9,11 @@ keyboard_yes_no.add(no_button2)
 
 #  Кнопки выбора сортировок (не реализовано)
 keyboard_sort = types.InlineKeyboardMarkup()
-price_sort_button = types.InlineKeyboardButton(text='По цене от самый дешевых', callback_data='price')
-distance_sort_button = types.InlineKeyboardButton(text='По расстоянию от центра', callback_data='distance')
+price_sort_button = types.InlineKeyboardButton(
+    text="По цене от самый дешевых", callback_data="price"
+)
+distance_sort_button = types.InlineKeyboardButton(
+    text="По расстоянию от центра", callback_data="distance"
+)
 keyboard_sort.add(price_sort_button)
 keyboard_sort.add((distance_sort_button))
