@@ -192,6 +192,7 @@ def hotels(dest, checkin, checkout):
     return text
 
 
+
 # Если введён привет - отвечает именем бота. Если другой текст - отправляет в /help
 @bot.message_handler(content_types=["text"])
 def handle_text(message):
