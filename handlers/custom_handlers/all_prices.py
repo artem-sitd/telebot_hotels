@@ -1,3 +1,5 @@
+import datetime
+from telegram_bot_calendar import DetailedTelegramCalendar
 from keyboards.inline.calendar import MyCalendar
 from keyboards.inline.yes_no_photo import keyboard_yes_no
 from loader import bot
@@ -53,6 +55,9 @@ def get_city(m: Message):
         bot.send_message(m.from_user.id, "Необходимо ввести корректный город")
 
 
+temp = {}
+
+
 # Сохранение даты заезда
 @bot.callback_query_handler(func=MyCalendar.func(calendar_id=1))
 def cal_checkin(c: CallbackQuery):
@@ -62,16 +67,14 @@ def cal_checkin(c: CallbackQuery):
             f"Выберите {LSTEP[step]} заезда",
             c.message.chat.id,
             c.message.message_id,
-            reply_markup=key,
-        )
+            reply_markup=key, )
     elif result:
         bot.set_state(c.from_user.id, AS.date_from_to, c.message.chat.id)
         with bot.retrieve_data(c.from_user.id, c.message.chat.id) as data:
             data["checkin"] = result  # Записывается дата заезда
+            temp['checkin'] = result
             bot.send_message(c.from_user.id, f"Вы выбрали дату заезда {result}")
-        date_from_to(
-            c.message
-        )  # Просто вызываем второй календарь (ниже) с датой выезда
+        date_from_to(c.message)  # Просто вызываем второй календарь (ниже) с датой выезда
 
 
 @bot.message_handler(state=AS.date_from_to)
@@ -90,16 +93,19 @@ def cal_checkout(c):
             f"Выберите {LSTEP[step]} выезда",
             c.message.chat.id,
             c.message.message_id,
-            reply_markup=key,
-        )
+            reply_markup=key, )
+
     elif result:
-        bot.set_state(c.from_user.id, AS.count_hotels, c.message.chat.id)
-        with bot.retrieve_data(c.from_user.id, c.message.chat.id) as data:
-            data["checkout"] = result  # Записывается дата выезда
-            bot.send_message(c.from_user.id, f"Вы выбрали дату выезда {result}")
-        bot.send_message(
-            c.from_user.id, f"Теперь необходимо выбрать количество отелей (максимум 10)"
-        )
+        if temp['checkin'] <= result:
+            bot.set_state(c.from_user.id, AS.count_hotels, c.message.chat.id)
+            with bot.retrieve_data(c.from_user.id, c.message.chat.id) as data:
+                data["checkout"] = result  # Записывается дата выезда
+                bot.send_message(c.from_user.id, f"Вы выбрали дату выезда {result}")
+            bot.send_message(
+                c.from_user.id, f"Теперь необходимо выбрать количество отелей (максимум 10)")
+        else:
+            bot.send_message(
+                c.from_user.id, f"Дата выезда должна быть не раньше заезда")
 
 
 @bot.message_handler(state=AS.count_hotels)
@@ -111,8 +117,7 @@ def get_count_hotels(m: Message):
             data["count_hotels"] = int(m.text)
             bot.send_message(m.from_user.id, f"{m.text} отелей будет показано")
         bot.send_message(
-            m.from_user.id, f"Нужны ли будут фото отелей?", reply_markup=keyboard_yes_no
-        )
+            m.from_user.id, f"Нужны ли будут фото отелей?", reply_markup=keyboard_yes_no)
 
 
 # Не активируется AS.finish
@@ -122,12 +127,13 @@ def get_answer_photo(call: CallbackQuery):
         bot.set_state(call.from_user.id, AS.image_count, call.message.chat.id)
         bot.send_message(
             call.from_user.id,
-            "Укажите количество фотографий (от 1 до 10)",
-        )
+            "Укажите количество фотографий (от 1 до 10)", )
     else:
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
             data["count_photo"] = None
         bot.set_state(call.from_user.id, AS.finish, call.message.chat.id)
+        finish(call)  # ничего страшного, что подсвечивает, т.к. finish ожидает Message,
+        # а здесь передается - CallbackQuery, но там потом проверка идет
         # Переходим к обработке всей информации
 
 
@@ -139,14 +145,24 @@ def get_image_count(m: Message):
         bot.set_state(m.from_user.id, AS.finish, m.chat.id)
         with bot.retrieve_data(m.from_user.id, m.chat.id) as data:
             data["count_photo"] = int(m.text)
-        # Переходим к обработке всей информации
+        finish(m)  # Переходим к обработке всей информации
 
 
 @bot.message_handler(state=AS.finish)
 def finish(m: Message):
-    bot.send_message(m.from_user.id, "Спасибо за ответы, собираю информацию")
-    bot.set_state(m.from_user.id, None, m.chat.id)
-    with bot.retrieve_data(m.from_user.id, m.chat.id) as data:
+    chat_id = None
+
+    # Проверка на Instance, т.к. если вызов этой функции происходит если пользователь отказался от фото,
+    # тогда функция принимает CallbackQuery, вместо Message
+    if isinstance(m, Message):
+        chat_id = m.chat.id
+    elif isinstance(m, CallbackQuery):
+        chat_id = m.message.chat.id
+
+    bot.send_message(chat_id, "Спасибо за ответы, собираю информацию")
+    bot.set_state(m.from_user.id, None, chat_id)
+
+    with bot.retrieve_data(m.from_user.id, chat_id) as data:
         response_list = PD(
             data["city"],
             data["checkin"],
@@ -157,12 +173,10 @@ def finish(m: Message):
             min_price=data.get("min_price", 0),
             max_price=data.get("max_price", 1000),
             sort_by=data.get("sort_by", 1),
-            count_photo=data["count_photo"],
-        )
+            count_photo=data["count_photo"], )
 
     if response_list:
         for hotel in response_list:
-            # обработка фото наверно будет здесь
             text = ""
             medias = []
             for k, v in hotel.items():
@@ -176,6 +190,5 @@ def finish(m: Message):
             bot.send_message(m.from_user.id, text, parse_mode="Markdown")
             sleep(0.1)
             if medias:
-                bot.send_media_group(m.chat.id, medias)
-            # сюда вставить фото
+                bot.send_media_group(chat_id, medias)
             sleep(0.3)
