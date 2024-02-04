@@ -18,5 +18,5 @@
 * Форматирование кода - black, isort
 ### Демонстрация работы бота:
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/VI7by1Fgn3g" frameborder="0" allowfullscreen></iframe>
+[![Alt text](https://img.youtube.com/vi/VI7by1Fgn3g/0.jpg)](https://www.youtube.com/watch?v=VI7by1Fgn3g)
 
