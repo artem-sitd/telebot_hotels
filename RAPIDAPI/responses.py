@@ -8,11 +8,13 @@
 3. properties/v2/detail - предоставляет ответ с подробной информацией об отеле:
  точный адрес, фотографии. Ожидает от вас `id` отеля
 """
-import json
-import requests
-from config_data.config import headers
-import traceback
 import datetime
+import json
+import traceback
+
+import requests
+
+from config_data.config import headers
 
 
 # Возврат ID локации + Проверка на корректность указания города
@@ -36,7 +38,7 @@ def get_lists(
     checkout: datetime.date,
     count_hotels: int = 200,  # если bestdeal
     min_price: float = 1,  # если bestdeal
-    max_price: float = 1000, # если bestdeal
+    max_price: float = 1000,  # если bestdeal
 ):
     url = "https://hotels4.p.rapidapi.com/properties/v2/list"
 

@@ -1,8 +1,10 @@
-import traceback
 import datetime
+import traceback
+
 from config_data.config import headers
-from .responses import get_lists
+
 from .responses import get_detail as GT
+from .responses import get_lists
 
 
 def process_data(

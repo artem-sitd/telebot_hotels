@@ -1,6 +1,7 @@
+from telebot.types import Message
+
 from loader import bot
 from states.all_state import AllState as AS
-from telebot.types import Message
 
 
 def check_float(num):

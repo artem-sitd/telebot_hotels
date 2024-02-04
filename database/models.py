@@ -1,5 +1,6 @@
-import peewee as pw
 from datetime import datetime
+
+import peewee as pw
 
 db = pw.SqliteDatabase("db_history.db")
 

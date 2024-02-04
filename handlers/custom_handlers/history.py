@@ -1,7 +1,9 @@
-from loader import bot
-from telebot.types import Message, CallbackQuery
-from database.models import History as HS
 from time import sleep
+
+from telebot.types import CallbackQuery, Message
+
+from database.models import History as HS
+from loader import bot
 
 
 @bot.message_handler(commands=["history"])

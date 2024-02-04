@@ -1,15 +1,18 @@
 import datetime
+from time import sleep
+
+from telebot.types import CallbackQuery, InputMediaPhoto, Message
 from telegram_bot_calendar import DetailedTelegramCalendar
+
+from database.models import History as HS
 from keyboards.inline.calendar import MyCalendar
 from keyboards.inline.yes_no_photo import keyboard_yes_no
 from loader import bot
-from states.all_state import AllState as AS
-from telebot.types import Message, CallbackQuery, InputMediaPhoto
-from RAPIDAPI.responses import check_city as cc
 from RAPIDAPI.lowprice import process_data as PD
-from time import sleep
+from RAPIDAPI.responses import check_city as cc
+from states.all_state import AllState as AS
+
 from .fast_message import FastMessage as FM
-from database.models import History as HS
 
 # Локализация для календаря
 LSTEP = {"y": "год", "m": "месяц", "d": "день"}
@@ -67,14 +70,17 @@ def cal_checkin(c: CallbackQuery):
             f"Выберите {LSTEP[step]} заезда",
             c.message.chat.id,
             c.message.message_id,
-            reply_markup=key, )
+            reply_markup=key,
+        )
     elif result:
         bot.set_state(c.from_user.id, AS.date_from_to, c.message.chat.id)
         with bot.retrieve_data(c.from_user.id, c.message.chat.id) as data:
             data["checkin"] = result  # Записывается дата заезда
-            temp['checkin'] = result
+            temp["checkin"] = result
             bot.send_message(c.from_user.id, f"Вы выбрали дату заезда {result}")
-        date_from_to(c.message)  # Просто вызываем второй календарь (ниже) с датой выезда
+        date_from_to(
+            c.message
+        )  # Просто вызываем второй календарь (ниже) с датой выезда
 
 
 @bot.message_handler(state=AS.date_from_to)
@@ -93,19 +99,23 @@ def cal_checkout(c):
             f"Выберите {LSTEP[step]} выезда",
             c.message.chat.id,
             c.message.message_id,
-            reply_markup=key, )
+            reply_markup=key,
+        )
 
     elif result:
-        if temp['checkin'] <= result:
+        if temp["checkin"] <= result:
             bot.set_state(c.from_user.id, AS.count_hotels, c.message.chat.id)
             with bot.retrieve_data(c.from_user.id, c.message.chat.id) as data:
                 data["checkout"] = result  # Записывается дата выезда
                 bot.send_message(c.from_user.id, f"Вы выбрали дату выезда {result}")
             bot.send_message(
-                c.from_user.id, f"Теперь необходимо выбрать количество отелей (максимум 10)")
+                c.from_user.id,
+                f"Теперь необходимо выбрать количество отелей (максимум 10)",
+            )
         else:
             bot.send_message(
-                c.from_user.id, f"Дата выезда должна быть не раньше заезда")
+                c.from_user.id, f"Дата выезда должна быть не раньше заезда"
+            )
 
 
 @bot.message_handler(state=AS.count_hotels)
@@ -117,7 +127,8 @@ def get_count_hotels(m: Message):
             data["count_hotels"] = int(m.text)
             bot.send_message(m.from_user.id, f"{m.text} отелей будет показано")
         bot.send_message(
-            m.from_user.id, f"Нужны ли будут фото отелей?", reply_markup=keyboard_yes_no)
+            m.from_user.id, f"Нужны ли будут фото отелей?", reply_markup=keyboard_yes_no
+        )
 
 
 # Не активируется AS.finish
@@ -127,7 +138,8 @@ def get_answer_photo(call: CallbackQuery):
         bot.set_state(call.from_user.id, AS.image_count, call.message.chat.id)
         bot.send_message(
             call.from_user.id,
-            "Укажите количество фотографий (от 1 до 10)", )
+            "Укажите количество фотографий (от 1 до 10)",
+        )
     else:
         with bot.retrieve_data(call.from_user.id, call.message.chat.id) as data:
             data["count_photo"] = None
@@ -173,7 +185,8 @@ def finish(m: Message):
             min_price=data.get("min_price", 0),
             max_price=data.get("max_price", 1000),
             sort_by=data.get("sort_by", 1),
-            count_photo=data["count_photo"], )
+            count_photo=data["count_photo"],
+        )
 
     if response_list:
         for hotel in response_list:
