@@ -14,7 +14,7 @@
 * Запуск бота из Корневой директории по команде - `python main.py`
 * .env.template необходимо заполнить вашими токенами от вашего бота и от [RapidApi](https://rapidapi.com/ru/apidojo/api/hotels4/)
 * Календарь -`https://github.com/artembakhanov/python-telegram-bot-calendar/tree/master`
-* Форматирование кода - black, isort
+* Линтеры - black, isort
 ### Демонстрация работы бота:
 
 [![Alt text](https://img.youtube.com/vi/VI7by1Fgn3g/0.jpg)](https://www.youtube.com/watch?v=VI7by1Fgn3g)
